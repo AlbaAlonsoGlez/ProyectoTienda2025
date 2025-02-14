@@ -7,6 +7,8 @@ package es.educastur.alba.proyectotienda2025;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
@@ -76,13 +78,21 @@ public class ProyectoTienda2025 implements Serializable {
         Scanner sc= new Scanner(System.in);
         int opcion=0;
         do {
-            System.out.println("1. NUEVO PEDIDO");
-            System.out.println("2. ");
-            System.out.println("3. ");
+            System.out.println("1. LISTA DE PEDIDOS");
+            System.out.println("2. LISTA DE PEDIDOS POR TOTAL");
+            System.out.println("3. NUEVO PEDIDO");
             System.out.println("9. SALIR");
             opcion = sc.nextInt();
             switch (opcion) {
                 case 1: {
+                    listarPedidos();
+                    break;
+                }
+                case 2: {
+                    listarPedidosPorTotal();
+                    break;
+                }
+                case 3: {
                     nuevoPedido();
                     break;
                 }
@@ -91,7 +101,21 @@ public class ProyectoTienda2025 implements Serializable {
     }
     
     private void menuArticulos() {
-        
+        Scanner sc= new Scanner(System.in);
+        int opcion=0;
+        do {
+            System.out.println("1. LISTA DE ARTÍCULOS");
+            System.out.println("2. ");
+            System.out.println("3. ");
+            System.out.println("9. SALIR");
+            opcion = sc.nextInt();
+            switch (opcion) {
+                case 1: {
+                    listarArticulos();
+                    break;
+                }
+            }
+        } while (opcion != 9);
     }
     
     private void menuClientes() {
@@ -99,30 +123,137 @@ public class ProyectoTienda2025 implements Serializable {
     }
 //</editor-fold>
     
-    //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE PEDIDOS">
-    public void stock (int unidadesPed, String id) throws StockAgotado, StockInsuficiente {
-        int n=articulos.get(id).getExistencias();
-        if (n==0) {
-            throw new StockAgotado ("Stock AGOTADO para el artículo: " + articulos.get(id).getDescripcion());
-        } else if (n < unidadesPed) {
-            throw new StockInsuficiente ("No hay stock suficiente. Me pide " + unidadesPed + " de " + articulos.get(id).getDescripcion() + " y sólo se dispone de: " + n);
+    //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE ARTÍCULOS">
+    public void listarArticulos() {
+        ArrayList<Articulo> articulosAux = new ArrayList(articulos.values());
+        Collections.sort(articulosAux);
+        for (Articulo a : articulosAux) {
+            System.out.println(a);
         }
+        
+        System.out.println("");
+        System.out.println("AL REVÉS");
+        System.out.println("");
+        
+        Collections.reverse(articulosAux);
+        for (Articulo a : articulosAux) {
+            System.out.println(a);
+        }
+        
+        System.out.println("");
+        System.out.println("ORDENADO POR PRECIO");
+        System.out.println("");
+        
+        Collections.sort(articulosAux, new ComparaArticulosPorPrecio());
+        for (Articulo a : articulosAux) {
+            System.out.println(a);
+        }
+        
+        System.out.println("");
+        System.out.println("ORDENADO POR EXISTENCIAS");
+        System.out.println("");
+        
+        Collections.sort(articulosAux, new ComparaArticulosPorExistencias());
+        for (Articulo a : articulosAux) {
+            System.out.println(a);
+        }
+        
+        System.out.println("");
+        
+        articulos.values().stream().sorted().forEach(System.out::println);
+        System.out.println("");
+        articulos.values().stream().sorted(new ComparaArticulosPorExistencias()).forEach(System.out::println);
+        System.out.println("");
+        articulos.values().stream().sorted(new ComparaArticulosPorPrecio()).forEach(System.out::println);
+        
+        System.out.println("");
     }
     
-    public String generaIdpedido (String idCliente) {
-        int contador = 0;
-        String nuevoId;
+//</editor-fold>
+    
+    //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE PEDIDOS">
+    
+    public void listarPedidos() {
+        Collections.sort(pedidos);
         for (Pedido p : pedidos) {
-            if (p.getClientePedido().getDni().equalsIgnoreCase(idCliente)) {
+            System.out.println(p);
+        }
+        
+        System.out.println("");
+        System.out.println("AL REVÉS");
+        System.out.println("");
+        
+        Collections.reverse(pedidos);
+        for (Pedido p : pedidos) {
+            System.out.println(p);
+        }
+        
+        pedidos.stream().sorted().forEach(System.out::println);
+        //podría ser también: pedidos.stream().forEach(p-> System.out.println(p));
+    }
+    
+    public void listarPedidosPorTotal() {
+        Scanner sc=new Scanner(System.in);
+        System.out.println(pedidos.get(0));
+        
+        pedidos.stream().sorted(Comparator.comparing(p -> totalPedido(p)))
+                .forEach(p -> System.out.println(p + "\t - IMPORTE TOTAL:" + totalPedido(p)));
+        
+        System.out.println("n");
+        System.out.println("¿De qué cliente quieres ver el pedido? Introduce el nombre");
+        String nombre=sc.nextLine().toUpperCase();
+        
+         pedidos.stream().filter(p -> p.getClientePedido().getNombre().equals(nombre))
+                .filter(p -> totalPedido(p)>500)
+                .sorted(Comparator.comparing(p -> totalPedido((Pedido) p)).reversed())
+                .forEach(p -> System.out.println(p + "\t - IMPORTE TOTAL:" + totalPedido(p)));
+        
+	System.out.println("\n");
+
+        //ARTICULOS DE UNA SECCIÓN EN CONCRETO (POR TECLADO) ORDENADOS DE MENOR A MAYOR PVP
+        System.out.println("Introduce una SECCION:");
+        char s=sc.next().charAt(0);
+        articulos.values().stream().filter(a->a.getIdArticulo().charAt(0)==s)
+                .sorted(new ComparaArticulosPorPrecio().reversed()).forEach(System.out::println);
+        }
+    
+    public double totalPedido(Pedido p) {
+        double total=0;
+        for (LineaPedido l:p.getCestaCompra())
+        {
+            total+=(articulos.get(l.getIdArticulo()).getPvp())
+                    *l.getUnidades();
+        }
+        return total;
+    }
+    
+    
+    public void stock(String id, int unidadesPed) throws StockAgotado, StockInsuficiente {
+        int n=articulos.get(id).getExistencias();
+        if (n==0){
+            throw new StockAgotado ("Stock AGOTADO para el articulo: "+ articulos.get(id).getDescripcion());
+        }else if (n < unidadesPed){
+            throw new StockInsuficiente ("No hay Stock suficiente. Me pide  " + unidadesPed + " de "
+                                        + articulos.get(id).getDescripcion()
+                                        + " y sólo se dispone de: "+ n);
+        }
+    } 
+    
+    public String generaIdPedido(String idCliente){ 
+        int contador = 0;     
+        String nuevoId;
+        for (Pedido p: pedidos){
+            if (p.getClientePedido().getDni().equalsIgnoreCase(idCliente)){
                 contador++;
             }
         }
         contador++;
-        nuevoId=idCliente + "-" + String.format("%03d", contador) + "/" + LocalDate.now().getYear();
+        nuevoId= idCliente + "-" + String.format("%03d", contador) + "/" + LocalDate.now().getYear();
         return nuevoId;
     }
     
-    public void nuevoPedido() {
+     public void nuevoPedido() {
+        //ARRAYLIST AUXILIAR PARA CREAR EL PEDIDO
         ArrayList<LineaPedido> CestaCompraAux = new ArrayList();
         String dniT, idT, opc, pedidasS;
         int pedidas=0;
@@ -130,24 +261,31 @@ public class ProyectoTienda2025 implements Serializable {
         do{
             System.out.println("CLIENTE PEDIDO (DNI):");
             dniT=sc.nextLine().toUpperCase();
+            //EN CUALQUIER MOMENTO PODEMOS SALIR DEL BUCLE TECLEANDO RETORNO
             if (dniT.isBlank()) break;
-            if (!MetodosAux.validarDNI(dniT)) System.out.println("El DNI no es un DNI válido");;
+            if (!MetodosAux.validarDNI(dniT)|| !clientes.containsKey(dniT)) System.out.println("El DNI no es válido O NO ES CLIENTE DE LA TIENDA");;
         }while (!clientes.containsKey(dniT));
+        
         if (!dniT.isBlank()){
-            System.out.println("INTRODUZCA LOS ARTÍCULOS DEL PEDIDO UNO A UNO: ");
-            do{
-                System.out.println("INTRODUCE CODIGO ARTICULO (99 PARA TERMINAR): ");
-                idT=sc.next();
-                if (!idT.equals("99") && articulos.containsKey(idT)){
+            System.out.println("\t\tCOMENZAMOS CON EL PEDIDO");
+            System.out.println("INTRODUCE CODIGO ARTICULO (RETURN PARA TERMINAR): ");
+            idT=sc.nextLine();
+                 
+            while (!idT.isEmpty()) {
+                if (!articulos.containsKey(idT)){
+                    System.out.println("El ID articulo tecleado no existe");
+                }else{
                     System.out.print("(" + articulos.get(idT).getDescripcion()+ ") - UNIDADES? ");
                     do {
-                        pedidasS=sc.next();
+                        pedidasS=sc.nextLine();
                     }while(!MetodosAux.esInt(pedidasS)); 
+
                     pedidas=Integer.parseInt(pedidasS);
-          
+
                     try{
-                        stock(pedidas,idT); // LLAMO AL METODO STOCK, PUEDEN SALTAR 2 EXCEPCIONES
+                        stock(idT,pedidas); // LLAMO AL METODO STOCK, PUEDEN SALTAR 2 EXCEPCIONES
                         CestaCompraAux.add(new LineaPedido(idT,pedidas));
+                        articulos.get(idT).setExistencias(articulos.get(idT).getExistencias()-pedidas);
                     }catch (StockAgotado e){
                         System.out.println(e.getMessage());
                     }catch (StockInsuficiente e){
@@ -157,10 +295,15 @@ public class ProyectoTienda2025 implements Serializable {
                         opc=sc.next();
                         if (opc.equalsIgnoreCase("S")){
                             CestaCompraAux.add(new LineaPedido(idT,disponibles));
+                            articulos.get(idT).setExistencias(articulos.get(idT).getExistencias()-disponibles);
                         }
                     }
                 }
-            }while (!idT.equals("99"));
+                System.out.println("INTRODUCE CODIGO ARTICULO (RETURN PARA TERMINAR): ");
+                idT=sc.nextLine();
+            }
+         
+            //IMPRIMO EL PEDIDO Y SOLICITO ACEPTACION DEFINITIVA DEL MISMO 
             for (LineaPedido l:CestaCompraAux)
             {
                 System.out.println(articulos.get(l.getIdArticulo()).getDescripcion() + " - ("+ l.getUnidades() + ")");
@@ -170,11 +313,12 @@ public class ProyectoTienda2025 implements Serializable {
             if (opc.equalsIgnoreCase("S")){
             // ESCRIBO EL PEDIDO DEFINITIVAMENTE Y DESCUENTO LAS EXISTENCIAS PEDIDAS DE CADA ARTICULO
                 LocalDate hoy=LocalDate.now();
-                pedidos.add(new Pedido(generaIdpedido(dniT),clientes.get(dniT),hoy,CestaCompraAux));
-                
+                pedidos.add(new Pedido(generaIdPedido(dniT),clientes.get(dniT),hoy,CestaCompraAux));
+            }
+            else{    
                 for (LineaPedido l:CestaCompraAux)
                 {
-                    articulos.get(l.getIdArticulo()).setExistencias(articulos.get(l.getIdArticulo()).getExistencias()-l.getUnidades());
+                    articulos.get(l.getIdArticulo()).setExistencias(articulos.get(l.getIdArticulo()).getExistencias()+l.getUnidades());
                 } 
             }
         }
