@@ -4,6 +4,13 @@
 
 package es.educastur.alba.proyectotienda2025;
 
+import java.io.EOFException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -45,6 +52,7 @@ public class ProyectoTienda2025 implements Serializable {
         ProyectoTienda2025 t= new ProyectoTienda2025();
         t.cargaDatos();
         t.menu();
+        t.backup();
     }
     
     //<editor-fold defaultstate="collapsed" desc="MENÚS">
@@ -55,6 +63,7 @@ public class ProyectoTienda2025 implements Serializable {
             System.out.println("1. PEDIDOS");
             System.out.println("2. ARTÍCULOS");
             System.out.println("3. CLIENTES");
+            System.out.println("4. HACER COPIA DE SEGURIDAD");
             System.out.println("9. SALIR");
             opcion = sc.nextInt();
             switch (opcion) {
@@ -68,6 +77,10 @@ public class ProyectoTienda2025 implements Serializable {
                 }
                 case 3: {
                     menuClientes();
+                    break;
+                }
+                case 4: {
+                    backup();
                     break;
                 }
             }
@@ -105,13 +118,17 @@ public class ProyectoTienda2025 implements Serializable {
         int opcion=0;
         do {
             System.out.println("1. LISTA DE ARTÍCULOS");
-            System.out.println("2. ");
+            System.out.println("2. ARTÍCULOS MÁS VENDIDOS");
             System.out.println("3. ");
             System.out.println("9. SALIR");
             opcion = sc.nextInt();
             switch (opcion) {
                 case 1: {
                     listarArticulos();
+                    break;
+                }
+                case 2: {
+                    ordenarArticulosPorDemanda();
                     break;
                 }
             }
@@ -121,9 +138,14 @@ public class ProyectoTienda2025 implements Serializable {
     private void menuClientes() {
         
     }
+    
 //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE ARTÍCULOS">
+    public void nuevoArticulo() {
+        
+    }
+    
     public void listarArticulos() {
         ArrayList<Articulo> articulosAux = new ArrayList(articulos.values());
         Collections.sort(articulosAux);
@@ -167,6 +189,19 @@ public class ProyectoTienda2025 implements Serializable {
         articulos.values().stream().sorted(new ComparaArticulosPorPrecio()).forEach(System.out::println);
         
         System.out.println("");
+        
+        
+    }
+    
+    public int cantidadTotalVendida(String idArticulo) {
+        return pedidos.stream().flatMap(p -> p.getCestaCompra().stream()) .filter(lp -> lp.getIdArticulo().equals(idArticulo)).mapToInt(LineaPedido::getUnidades).sum();
+    }
+    
+    
+    public void ordenarArticulosPorDemanda() {
+        articulos.values().stream()
+                .sorted(Comparator.comparing(a -> cantidadTotalVendida(a.getIdArticulo()), Comparator.reverseOrder()))
+                .forEach(a-> System.out.println(a + " \t - el número de artículos vendidos es: " + cantidadTotalVendida(a.getIdArticulo())));
     }
     
 //</editor-fold>
@@ -323,6 +358,59 @@ public class ProyectoTienda2025 implements Serializable {
             }
         }
     }
+//</editor-fold>
+     
+     //<editor-fold defaultstate="collapsed" desc="PERSISTENCIA">
+    public void backup() {
+        try (ObjectOutputStream oosArticulos=new ObjectOutputStream(new FileOutputStream("articulos.dat"));
+            ObjectOutputStream oosClientes=new ObjectOutputStream(new FileOutputStream("clientes.dat"));
+            ObjectOutputStream oosPedidos=new ObjectOutputStream(new FileOutputStream("pedidos.dat"))) {
+            
+            //COLECCIONES COMPLETAS        
+            oosArticulos.writeObject(articulos);
+            oosClientes.writeObject(clientes);
+            
+            //LOS PEDIDOS SE GUARDAN OBJETO A OBJETO     
+            for (Pedido p: pedidos) {
+                oosPedidos.writeObject(p);
+            }
+            
+            System.out.println("Copia de seguridad realizada con éxito =)");
+        }
+        
+        catch (FileNotFoundException e) {
+            System.out.println(e.toString());
+        } catch (IOException e) {
+            System.out.println(e.toString());
+        }
+    }
+    
+    public void leerArchivos() {
+         try (ObjectInputStream oisArticulos=new ObjectInputStream(new FileInputStream("articulos.dat"));
+            ObjectInputStream oisClientes=new ObjectInputStream(new FileInputStream("clientes.dat"));
+            ObjectInputStream oisPedidos=new ObjectInputStream(new FileInputStream("pedidos.dat"))) {
+            
+            //COLECCIONES COMPLETAS        
+            articulos = (HashMap<String, Articulo>) oisArticulos.readObject();
+            clientes = (HashMap<String, Cliente>) oisClientes.readObject();
+            
+            //LOS PEDIDOS SE GUARDAN OBJETO A OBJETO     
+            Pedido p=null;
+            while ( (p=(Pedido) oisPedidos.readObject()) != null) {
+                pedidos.add(p);
+            }
+            
+            System.out.println("Colecciones importadas con éxito =)");
+        }
+         
+        catch (FileNotFoundException e) {
+            System.out.println(e.toString());
+        } catch (EOFException e) {
+        } catch (ClassNotFoundException | IOException e) {
+            System.out.println(e.toString());
+        }
+    }
+     
 //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="OTROS MÉTODOS">
