@@ -4,6 +4,7 @@
  */
 package es.educastur.alba.proyectotienda2025;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
@@ -11,7 +12,7 @@ import java.util.ArrayList;
  *
  * @author alu01d
  */
-public class Pedido implements Comparable <Pedido>{
+public class Pedido implements Serializable, Comparable <Pedido>{
     private String idPedido;
     private Cliente clientePedido;
     private LocalDate fechaPedido;

@@ -50,9 +50,11 @@ public class ProyectoTienda2025 implements Serializable {
     
     public static void main(String[] args) {
         ProyectoTienda2025 t= new ProyectoTienda2025();
-        t.cargaDatos();
+        t.leerArchivos();
+        //t.cargaDatos();
         t.menu();
         t.backup();
+        
     }
     
     //<editor-fold defaultstate="collapsed" desc="MENÚS">
@@ -117,9 +119,10 @@ public class ProyectoTienda2025 implements Serializable {
         Scanner sc= new Scanner(System.in);
         int opcion=0;
         do {
-            System.out.println("1. LISTA DE ARTÍCULOS");
-            System.out.println("2. ARTÍCULOS MÁS VENDIDOS");
-            System.out.println("3. ");
+            System.out.println("1. NUEVO ARTÍCULO");
+            System.out.println("2. LISTA DE ARTÍCULOS");
+            System.out.println("3. ARTÍCULOS MÁS VENDIDOS");
+            System.out.println("4. ");
             System.out.println("9. SALIR");
             opcion = sc.nextInt();
             switch (opcion) {
@@ -141,10 +144,96 @@ public class ProyectoTienda2025 implements Serializable {
     
 //</editor-fold>
     
-    //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE ARTÍCULOS">
-    public void nuevoArticulo() {
-        
+    //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE CLIENTES">
+    private void nuevoCliente() {
+         String dni, nombre, telefono, email;
+
+    do {
+        System.out.print("Deme su DNI: ");
+        dni = sc.nextLine().toUpperCase();
+        if (!MetodosAux.validarDNI(dni)) {
+            System.out.println("DNI no válido. Inténtelo de nuevo.");
+        } else if (clientes.containsKey(dni)) {
+            System.out.println("Ese cliente ya existe. Intente con otro DNI.");
+            return;
+        }
+    } while (!MetodosAux.validarDNI(dni));
+
+    System.out.print("Deme su NOMBRE: ");
+    nombre = sc.nextLine();
+    
+    do {
+        System.out.print("Deme su TELÉFONO: ");
+        telefono = sc.nextLine();
+        if (!telefono.matches("\\d{9}")) {
+            System.out.println("Número de teléfono no válido. Debe tener 9 dígitos.");
+        }
+    } while (!telefono.matches("\\d{9}"));
+    
+    do {
+        System.out.print("Deme su EMAIL: ");
+        email = sc.nextLine();
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            System.out.println("Correo electrónico no válido. Inténtelo de nuevo.");
+        }
+    } while (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$"));
+
+    Cliente c = new Cliente(dni, nombre, telefono, email);
+    clientes.put(dni, c);
+    System.out.println("Cliente añadido correctamente.");
     }
+     
+     private void eliminarCliente() {
+         System.out.println("HOLA");
+    }
+    
+//</editor-fold>
+    
+    //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE ARTÍCULOS">
+    private void nuevoArticulo() {
+        String id, descripcion;
+        int existencias;
+        double precio;
+
+        do {
+            System.out.print("Ingrese el ID del artículo: ");
+            id = sc.nextLine();
+            if (articulos.containsKey(id)) {
+                System.out.println("El ID ya existe. Intente con otro.");
+                return;
+            }
+        } while (id.isEmpty());
+
+        System.out.print("Ingrese la descripción del artículo: ");
+        descripcion = sc.nextLine();
+
+        do {
+            System.out.print("Ingrese la cantidad en stock: ");
+            while (!sc.hasNextInt()) {
+                System.out.println("Por favor, introduzca un número válido.");
+                sc.next();
+            }
+            existencias = sc.nextInt();
+        } while (existencias < 0);
+
+        do {
+            System.out.print("Ingrese el precio: ");
+            while (!sc.hasNextDouble()) {
+                System.out.println("Por favor, introduzca un precio válido.");
+                sc.next();
+            }
+            precio = sc.nextDouble();
+        } while (precio <= 0);
+
+        Articulo a = new Articulo(id, descripcion, existencias, precio);
+        articulos.put(id, a);
+        System.out.println("Artículo añadido correctamente.");
+    }
+
+    private void eliminarArticulo() {
+         System.out.println("HOLA");
+    }
+
     
     public void listarArticulos() {
         ArrayList<Articulo> articulosAux = new ArrayList(articulos.values());
@@ -360,17 +449,25 @@ public class ProyectoTienda2025 implements Serializable {
     }
 //</editor-fold>
      
-     //<editor-fold defaultstate="collapsed" desc="PERSISTENCIA">
+    //<editor-fold defaultstate="collapsed" desc="PERSISTENCIA">
     public void backup() {
         try (ObjectOutputStream oosArticulos=new ObjectOutputStream(new FileOutputStream("articulos.dat"));
             ObjectOutputStream oosClientes=new ObjectOutputStream(new FileOutputStream("clientes.dat"));
             ObjectOutputStream oosPedidos=new ObjectOutputStream(new FileOutputStream("pedidos.dat"))) {
             
-            //COLECCIONES COMPLETAS        
-            oosArticulos.writeObject(articulos);
-            oosClientes.writeObject(clientes);
+            //Para guardar colecciones enteras
+            //oosArticulos.writeObject(articulos);
+            //oosClientes.writeObject(clientes);
             
-            //LOS PEDIDOS SE GUARDAN OBJETO A OBJETO     
+            //Para guardar objeto a objeto
+            for (Articulo a: articulos.values()) {
+                oosArticulos.writeObject(a);
+            }
+            
+            for (Cliente c: clientes.values()) {
+                oosClientes.writeObject(c);
+            }
+            
             for (Pedido p: pedidos) {
                 oosPedidos.writeObject(p);
             }
@@ -391,10 +488,20 @@ public class ProyectoTienda2025 implements Serializable {
             ObjectInputStream oisPedidos=new ObjectInputStream(new FileInputStream("pedidos.dat"))) {
             
             //COLECCIONES COMPLETAS        
-            articulos = (HashMap<String, Articulo>) oisArticulos.readObject();
-            clientes = (HashMap<String, Cliente>) oisClientes.readObject();
+            //articulos = (HashMap<String, Articulo>) oisArticulos.readObject();
+            //clientes = (HashMap<String, Cliente>) oisClientes.readObject();
             
             //LOS PEDIDOS SE GUARDAN OBJETO A OBJETO     
+            Articulo a=null;
+            while ( (a=(Articulo) oisArticulos.readObject()) != null) {
+                articulos.put(a.getIdArticulo(), a);
+            }
+            
+            Cliente c=null;
+            while ( (c=(Cliente) oisArticulos.readObject()) != null) {
+                clientes.put(c.getDni(), c);
+            }
+            
             Pedido p=null;
             while ( (p=(Pedido) oisPedidos.readObject()) != null) {
                 pedidos.add(p);
@@ -413,7 +520,7 @@ public class ProyectoTienda2025 implements Serializable {
      
 //</editor-fold>
     
-    //<editor-fold defaultstate="collapsed" desc="OTROS MÉTODOS">
+    //<editor-fold defaultstate="collapsed" desc="CARGA ">
     
     public void cargaDatos(){
         

@@ -4,11 +4,13 @@
  */
 package es.educastur.alba.proyectotienda2025;
 
+import java.io.Serializable;
+
 /**
  *
  * @author alu01d
  */
-public class LineaPedido {
+public class LineaPedido implements Serializable {
     private String idArticulo;
     private int unidades;
 

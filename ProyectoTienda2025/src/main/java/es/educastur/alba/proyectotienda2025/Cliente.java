@@ -4,11 +4,13 @@
  */
 package es.educastur.alba.proyectotienda2025;
 
+import java.io.Serializable;
+
 /**
  *
  * @author alu01d
  */
-public class Cliente {
+public class Cliente implements Serializable{
     private String dni;
     private String nombre;
     private String telefono;
