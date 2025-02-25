@@ -4,10 +4,13 @@
 
 package es.educastur.alba.proyectotienda2025;
 
+import java.io.BufferedWriter;
 import java.io.EOFException;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -65,7 +68,7 @@ public class ProyectoTienda2025 implements Serializable {
             System.out.println("1. PEDIDOS");
             System.out.println("2. ARTÍCULOS");
             System.out.println("3. CLIENTES");
-            System.out.println("4. HACER COPIA DE SEGURIDAD");
+            System.out.println("4. COPIA DE SEGURIDAD GENERAL");
             System.out.println("9. SALIR");
             opcion = sc.nextInt();
             switch (opcion) {
@@ -120,18 +123,36 @@ public class ProyectoTienda2025 implements Serializable {
         int opcion=0;
         do {
             System.out.println("1. NUEVO ARTÍCULO");
-            System.out.println("2. LISTA DE ARTÍCULOS");
-            System.out.println("3. ARTÍCULOS MÁS VENDIDOS");
-            System.out.println("4. ");
+            System.out.println("2. ELIMINAR ARTÍCULO");
+            System.out.println("3. LISTA DE ARTÍCULOS");
+            System.out.println("4. ARTÍCULOS MÁS VENDIDOS");
+            System.out.println("5. MOSTRAR ARTÍCULOS POR SECCIONES");
+            System.out.println("6. COPIA DE SEGURIDAD POR SECCIONES");
             System.out.println("9. SALIR");
             opcion = sc.nextInt();
             switch (opcion) {
                 case 1: {
-                    listarArticulos();
+                    nuevoArticulo();
                     break;
                 }
                 case 2: {
+                    eliminarArticulo();
+                    break;
+                }
+                case 3: {
+                    listarArticulos();
+                    break;
+                }
+                case 4: {
                     ordenarArticulosPorDemanda();
+                    break;
+                }
+                case 5: {
+                    leerArchivosSeccion();
+                    break;
+                }
+                case 6: {
+                    backupPorSeccion();
                     break;
                 }
             }
@@ -139,7 +160,34 @@ public class ProyectoTienda2025 implements Serializable {
     }
     
     private void menuClientes() {
-        
+        Scanner sc= new Scanner(System.in);
+        int opcion=0;
+        do {
+            System.out.println("1. NUEVO CLIENTE");
+            System.out.println("2. ELIMINAR CLIENTE");
+            System.out.println("3. CLIENTES A TEXTO");
+            System.out.println("4. LEER TXT CLIENTES");
+            System.out.println("9. SALIR");
+            opcion = sc.nextInt();
+            switch (opcion) {
+                case 1: {
+                    nuevoCliente();
+                    break;
+                }
+                case 2: {
+                    eliminarCliente();
+                    break;
+                }
+                case 3: {
+                    clientesTxtBackup();
+                    break;
+                }
+                case 4: {
+                    clientesTxtLeer();
+                    break;
+                }
+            }
+        } while (opcion != 9);
     }
     
 //</editor-fold>
@@ -184,9 +232,35 @@ public class ProyectoTienda2025 implements Serializable {
     }
      
      private void eliminarCliente() {
-         System.out.println("HOLA");
+         System.out.println("_");
     }
     
+    public void clientesTxtBackup() {
+        try(BufferedWriter bfwClientes=new BufferedWriter(new FileWriter("clientes.csv"))){
+            for (Cliente c : clientes.values()) {
+                bfwClientes.write(c.getDni() + "," + c.getNombre() + "," + c.getTelefono() + "," + c.getEmail() + "\n");
+            }
+        }catch (FileNotFoundException e) {
+                 System.out.println(e.toString());   
+        }catch(IOException e){
+            System.out.println(e.toString());
+        }
+    }  
+    
+    public void clientesTxtLeer() {
+        // LEEMOS LOS CLIENTES DESDE EL ARCHIVO .csv A UNA COLECCION HASHMAP AUXILIAR Y LA IMPRIMIMOS
+        HashMap <String,Cliente> clientesAux = new HashMap();
+        try(Scanner scClientes=new Scanner(new File("clientes.csv"))){
+            while (scClientes.hasNextLine()){
+                String [] atributos = scClientes.nextLine().split("[,]");                                                              
+                Cliente c=new Cliente(atributos[0],atributos[1],atributos[2],atributos[3]); 
+                clientesAux.put(atributos[0], c);
+            }
+        }catch(IOException e){
+            System.out.println(e.toString());
+        }
+        clientesAux.values().forEach(System.out::println);
+    }  
 //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="GESTIÓN DE ARTÍCULOS">
@@ -292,6 +366,80 @@ public class ProyectoTienda2025 implements Serializable {
                 .sorted(Comparator.comparing(a -> cantidadTotalVendida(a.getIdArticulo()), Comparator.reverseOrder()))
                 .forEach(a-> System.out.println(a + " \t - el número de artículos vendidos es: " + cantidadTotalVendida(a.getIdArticulo())));
     }
+    
+    public void leerArchivosSeccion(){
+      System.out.println("Teclea la sección de los artículos que quieres recuperar");
+      System.out.println("1 - PERIFERICOS");
+      System.out.println("2 - ALMACENAMIENTO");
+      System.out.println("3 - IMPRESORAS");
+      System.out.println("4 - MONITORES");
+      System.out.println("5 - TODOS");
+      String id=sc.next();
+      ArrayList<Articulo> articulosAux=new ArrayList();
+      Articulo a;
+      
+      try (ObjectInputStream oisArticulos = new ObjectInputStream(new FileInputStream("articulos.dat"))){
+            while ( (a=(Articulo)oisArticulos.readObject()) != null){
+                if (id.equals("5")) {
+                    articulosAux.add(a);
+                }else if (a.getIdArticulo().startsWith(id)) {
+                    articulosAux.add(a);
+                }
+            }
+	} catch (FileNotFoundException e) {
+                 System.out.println(e.toString());
+                 
+        } catch (EOFException e){
+            
+        } catch (ClassNotFoundException | IOException e) {
+                System.out.println(e.toString()); 
+        } 
+        articulosAux.forEach(System.out::println);
+   }
+   
+   public void backupPorSeccion(){
+      System.out.println("Teclea la sección de la que quiere hacer una copia de seguridad =)");
+      System.out.println("1 - PERIFERICOS");
+      System.out.println("2 - ALMACENAMIENTO");
+      System.out.println("3 - IMPRESORAS");
+      System.out.println("4 - MONITORES");
+      System.out.println("5 - TODOS");
+      String id=sc.next();
+      
+      
+      try (ObjectOutputStream oosPerifericos=new ObjectOutputStream(new FileOutputStream("perifericos.dat"));
+            ObjectOutputStream oosAlmacenamiento=new ObjectOutputStream(new FileOutputStream("almacenamiento.dat"));
+            ObjectOutputStream oosImpresoras=new ObjectOutputStream(new FileOutputStream("impresoras.dat"));
+            ObjectOutputStream oosMonitores=new ObjectOutputStream(new FileOutputStream("monitores.dat"))){
+            
+            for (Articulo a : articulos.values()) {
+                char seccion=a.getIdArticulo().charAt(0);
+                switch (seccion) {
+                    case '1':
+                        oosPerifericos.writeObject(a);
+                        break;
+                    case '2':
+                        oosAlmacenamiento.writeObject(a);
+                        break;
+                    case '3':
+                        oosImpresoras.writeObject(a);
+                        break;
+                    case '4':
+                        oosMonitores.writeObject(a);
+                        break;   
+                }
+            }
+            
+            System.out.println("Copia de seguridad realizada con éxito =)");
+        }
+        
+        catch (FileNotFoundException e) {
+            System.out.println(e.toString());
+        } catch (IOException e) {
+            System.out.println(e.toString());
+        }
+      
+   }
     
 //</editor-fold>
     
@@ -455,11 +603,6 @@ public class ProyectoTienda2025 implements Serializable {
             ObjectOutputStream oosClientes=new ObjectOutputStream(new FileOutputStream("clientes.dat"));
             ObjectOutputStream oosPedidos=new ObjectOutputStream(new FileOutputStream("pedidos.dat"))) {
             
-            //Para guardar colecciones enteras
-            //oosArticulos.writeObject(articulos);
-            //oosClientes.writeObject(clientes);
-            
-            //Para guardar objeto a objeto
             for (Articulo a: articulos.values()) {
                 oosArticulos.writeObject(a);
             }
@@ -489,7 +632,8 @@ public class ProyectoTienda2025 implements Serializable {
                  articulos.put(a.getIdArticulo(), a);
             } 
 	} catch (FileNotFoundException e) {
-                 System.out.println(e.toString());    
+                 System.out.println(e.toString());
+                 
         } catch (EOFException e){
             
         } catch (ClassNotFoundException | IOException e) {
@@ -503,6 +647,7 @@ public class ProyectoTienda2025 implements Serializable {
             } 
 	} catch (FileNotFoundException e) {
                  System.out.println(e.toString());    
+                 
         } catch (EOFException e){
             
         } catch (ClassNotFoundException | IOException e) {
@@ -517,17 +662,19 @@ public class ProyectoTienda2025 implements Serializable {
             } 
 	} catch (FileNotFoundException e) {
                  System.out.println(e.toString());    
+                 
         } catch (EOFException e){
             
         } catch (ClassNotFoundException | IOException e) {
                 System.out.println(e.toString()); 
         }
-       
+
     }
+   
      
 //</editor-fold>
     
-    //<editor-fold defaultstate="collapsed" desc="CARGA ">
+    //<editor-fold defaultstate="collapsed" desc="CARGA DATOS">
     
     public void cargaDatos(){
         
