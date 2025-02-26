@@ -4,12 +4,14 @@
 
 package es.educastur.alba.proyectotienda2025;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -19,6 +21,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
@@ -184,6 +187,10 @@ public class ProyectoTienda2025 implements Serializable {
                 }
                 case 4: {
                     clientesTxtLeer();
+                    break;
+                }
+                case 5: {
+                    clientesConPedidosTxtBackup();
                     break;
                 }
             }
@@ -475,7 +482,7 @@ public class ProyectoTienda2025 implements Serializable {
         System.out.println("¿De qué cliente quieres ver el pedido? Introduce el nombre");
         String nombre=sc.nextLine().toUpperCase();
         
-         pedidos.stream().filter(p -> p.getClientePedido().getNombre().equals(nombre))
+        pedidos.stream().filter(p -> p.getClientePedido().getNombre().equals(nombre))
                 .filter(p -> totalPedido(p)>500)
                 .sorted(Comparator.comparing(p -> totalPedido((Pedido) p)).reversed())
                 .forEach(p -> System.out.println(p + "\t - IMPORTE TOTAL:" + totalPedido(p)));
@@ -672,6 +679,147 @@ public class ProyectoTienda2025 implements Serializable {
     }
    
      
+//</editor-fold>
+   
+    //<editor-fold defaultstate="collapsed" desc="OTROS MÉTODOS">
+   
+   public void eliminarArchivo() { 
+	Scanner sc = new Scanner(System.in); 
+	System.out.println("Indica el nombre del archivo a borrar: "); 
+	String nombre = sc.nextLine(); 
+        File f = new File(nombre); 	
+        System.out.println(f.getAbsolutePath()); 
+	if(f.delete()){ 
+		System.out.println("El archivo ha sido eliminado"); 
+	} else{ 
+		System.out.println("No se ha podido eliminar :("); 
+	}
+    }
+        
+    public void cambioNombre() {
+        Scanner sc = new Scanner(System.in);
+	System.out.println("Indica el nombre del archivo a renombrar: ");
+        String nombre = sc.nextLine(); 
+        File f1 = new File(nombre); 
+	System.out.println("Indica el nuevo nombre del archivo "); 
+	String nombre2 = sc.nextLine(); 
+	File f2 = new File(nombre2); 
+	if(f1.renameTo(f2)){ 
+		System.out.println("El nombre del archivo se ha cambiado con éxito =)"); 
+	} else{ 
+		System.out.println("No se ha podido cambiar el nombre del archivo :("); 
+	} 
+    }
+    
+    public void listadoContenido() {
+        Scanner sc = new Scanner(System.in); 
+        File carpeta; 
+        System.out.println("Nombre de la carpeta a LISTAR -(ENTER) para mostrar contenido de la carpeta ACTUAL: "); 
+        String nombre = sc.nextLine(); 
+        if (nombre==""){ 
+                carpeta= new File(".");
+        }else{ 
+            carpeta= new File(nombre);
+        } 
+        String[] listado = carpeta.list(); 
+        for (String s: listado) { 
+            System.out.println(s); 
+        } 
+    }
+    
+    public void informacionArchivo() {
+        File f= new File("archivo1.txt"); 
+        try { 
+            f.createNewFile(); 
+        } catch (IOException e) { 
+            System.out.println(e.getMessage()); 
+        } System.out.println("Nombre: " + f.getName()); 
+        System.out.println("Ruta: " + f.getAbsolutePath() ); 
+        System.out.println("Tamaño en Bytes: " + f.length() ); 
+        System.out.println("Fecha Última modificación: " + new Date (f.lastModified())); 
+    }
+    
+    public void clientesConPedidosTxtBackup() {
+        try(BufferedWriter bfwClientesPorPedidos=new BufferedWriter(new FileWriter("clientesPorPedido.txt"))){
+            HashMap <String, Cliente> clientesPorPedidos= new HashMap<>();
+            for (Pedido p: pedidos) {
+                clientesPorPedidos.put(p.getClientePedido().getDni(), p.getClientePedido());
+            }
+            for (Cliente c : clientesPorPedidos.values()) {
+                bfwClientesPorPedidos.write(c.getDni() + "," + c.getNombre() + "," + c.getTelefono() + "," + c.getEmail() + "\n");
+            }
+        }catch (FileNotFoundException e) {
+                 System.out.println(e.toString());   
+        }catch(IOException e){
+            System.out.println(e.toString());
+        }
+    }
+    
+    public void escribirEnArchivo() {
+        Scanner sc=new Scanner(System.in); 
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("archivo1.txt",true))) { 
+            String cadena;
+            System.out.println("Teclea líneas de texto + RETORNO - (FIN para terminar)"); 
+            cadena = sc.nextLine(); 
+            while (!cadena.equalsIgnoreCase("FIN")) { 
+                bw.write(cadena);
+                bw.newLine();
+                cadena = sc.nextLine();
+            } 
+        } catch (IOException e) { 
+        System.out.println("No se ha podido escribir en el fichero"); }  
+    }
+    
+    public void leerLineaALinea() {
+        try (BufferedReader br = new BufferedReader(new FileReader("archivo1.txt"))) {
+            String cadena = br.readLine();
+            while (cadena != null) {
+                System.out.print(cadena);
+                cadena = br.readLine();
+            } 
+        } catch (FileNotFoundException e) {
+            System.out.println(e.getMessage());
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+    
+    public void leerCaracterACaracter() {
+        try (BufferedReader br = new BufferedReader(new FileReader("archivo1.txt"))) {
+            int caracter = br.read();
+            while (caracter != -1) {
+                System.out.print((char)caracter);
+                caracter = br.read();
+            } 
+        } catch (FileNotFoundException e) {
+            System.out.println(e.getMessage());
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+    
+     public void restaurarPedidosDeCliente() {
+        System.out.print("Ingrese el DNI del cliente cuyos pedidos quiere restaurar: "); 
+        String dni = sc.nextLine(); 
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("pedidos.dat"))) { 
+        Pedido p; 
+        while ((p = (Pedido) ois.readObject()) != null) { 
+            if (p.getClientePedido().getDni().equals(dni)) { 
+                pedidos.add(p); 
+            } 
+        } 
+        System.out.println("Pedidos de " + dni + " restaurados correctamente."); 
+        } catch (EOFException e) { 
+
+        System.out.println("Fin del archivo alcanzado."); 
+
+    } catch (IOException | ClassNotFoundException e) { 
+
+        System.out.println("Error al restaurar pedidos: " + e.getMessage()); 
+
+    } 
+     }
+    
 //</editor-fold>
     
     //<editor-fold defaultstate="collapsed" desc="CARGA DATOS">
